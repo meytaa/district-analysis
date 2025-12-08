@@ -11,7 +11,7 @@ load_dotenv()
 # Page Config
 st.set_page_config(
     page_title="CIPI District Analysis",
-    page_icon="📊",
+    page_icon="assets/ic-logo-black.png",
     layout="wide"
 )
 
@@ -48,44 +48,49 @@ def check_login():
         return True
         
     # Login Page Layout
-    st.markdown("## 🔐 Access Restricted")
-    st.markdown("Please log in to access the District Analysis Dashboard.")
+    col1, col2, col3 = st.columns([1, 1, 1])
     
-    with st.form("login_form"):
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        submitted = st.form_submit_button("Login")
-        
-        if submitted:
-            # Check against secrets
-            authenticated = False
+    with col2:
+        st.image("assets/logo.svg", width=300)
+        st.markdown("### Access Restricted")
+        st.markdown("Please log in to access the District Analysis Dashboard.")
+    
+        with st.form("login_form"):
+            username = st.text_input("Username")
+            password = st.text_input("Password", type="password")
+            submitted = st.form_submit_button("Login")
             
-            # 1. Multi-user support (preferred)
-            if "passwords" in st.secrets:
-                if username in st.secrets["passwords"] and password == st.secrets["passwords"][username]:
-                    authenticated = True
-            
-            # 2. Single-user fallback (legacy)
-            elif "credentials" in st.secrets:
-                if (username == st.secrets["credentials"]["username"] and 
-                    password == st.secrets["credentials"]["password"]):
-                    authenticated = True
-            
-            # 3. Default fallback (only if no secrets configured)
-            elif username == "admin" and password == "admin":
-                 authenticated = True
+            if submitted:
+                    # Check against secrets
+                authenticated = False
+                
+                # 1. Multi-user support (preferred)
+                if "passwords" in st.secrets:
+                    if username in st.secrets["passwords"] and password == st.secrets["passwords"][username]:
+                        authenticated = True
+                
+                # 2. Single-user fallback (legacy)
+                elif "credentials" in st.secrets:
+                    if (username == st.secrets["credentials"]["username"] and 
+                        password == st.secrets["credentials"]["password"]):
+                        authenticated = True
+                
+                # 3. Default fallback (only if no secrets configured)
+                elif username == "admin" and password == "admin":
+                     authenticated = True
 
-            if authenticated:
-                st.session_state.authenticated = True
-                st.success("Logged in successfully!")
-                st.rerun()
-            else:
-                st.error("Invalid username or password")
+                if authenticated:
+                    st.session_state.authenticated = True
+                    st.success("Logged in successfully!")
+                    st.rerun()
+                else:
+                    st.error("Invalid username or password")
                 
     return False
 
 def run_dashboard():
-    st.title("📊 CIPI District Strategic Analysis")
+    st.image("assets/logo.svg", width=600)
+    st.title("CIPI District Strategic Analysis")
     st.markdown("Generate comprehensive strategic reports for congressional districts based on the **Civic Infrastructure Potential Index (CIPI)**.")
 
     # Load data
@@ -138,6 +143,9 @@ def run_dashboard():
         
         # API Key handling
         api_key = os.getenv("OPENAI_API_KEY")
+        if not api_key and "OPENAI_API_KEY" in st.secrets:
+            api_key = st.secrets["OPENAI_API_KEY"]
+
         if not api_key:
             api_key = st.text_input("OpenAI API Key", type="password", help="Enter your OpenAI API key here if not set in .env")
         
@@ -177,11 +185,12 @@ def run_dashboard():
         # Optional: Show a preview of the data stats
         district_row = df[df['district_code'] == selected_district_code].iloc[0]
         
-        cols = st.columns(4)
+        cols = st.columns(5)
         cols[0].metric("CIPI Score", f"{district_row.get('CIPI', 0):.1f}")
         cols[1].metric("Vacuum", f"{district_row.get('Vacuum', 0):.1f}")
         cols[2].metric("Protest", f"{district_row.get('Protest', 0):.1f}")
         cols[3].metric("Apathy", f"{district_row.get('Apathy', 0):.1f}")
+        cols[4].metric("Demo", f"{district_row.get('Demo', 0):.1f}")
 
 def main():
     if check_login():
