@@ -250,7 +250,7 @@ def page_deep_dive():
         
         st.divider()
 
-        # Report Logic
+        # Report Generation Logic
         if generate_btn:
             if not api_key:
                 st.error("Please provide an OpenAI API Key.")
@@ -260,37 +260,45 @@ def page_deep_dive():
                     if error:
                         st.error(error)
                     else:
+                        # Save to session state to persist across reruns (downloads)
+                        st.session_state['report_content'] = report_content
+                        st.session_state['report_district'] = selected_district_code
                         st.success(f"Report generated for {selected_district_code}!")
-                        with st.container():
-                            st.markdown(report_content)
-                            st.markdown("---")
-                            
-                            # Prepare downloads
-                            pdf_data = create_pdf(report_content)
-                            
-                            d_col1, d_col2 = st.columns(2)
-                            
-                            with d_col1:
-                                st.download_button(
-                                    label="Download MD",
-                                    data=report_content,
-                                    file_name=f"cipi_report_{selected_district_code}.md",
-                                    mime="text/markdown",
-                                    use_container_width=True
-                                )
-                            
-                            with d_col2:
-                                if pdf_data:
-                                    st.download_button(
-                                        label="Download PDF",
-                                        data=pdf_data,
-                                        file_name=f"cipi_report_{selected_district_code}.pdf",
-                                        mime="application/pdf",
-                                        use_container_width=True
-                                    )
-                                else:
-                                    st.warning("PDF generation failed.")
-        else:
+
+        # Display Report (Persistent)
+        if st.session_state.get('report_district') == selected_district_code and st.session_state.get('report_content'):
+            report_content = st.session_state['report_content']
+            with st.container():
+                st.markdown(report_content)
+                st.markdown("---")
+                
+                # Prepare downloads
+                # Generate PDF only when needed (or could cache this too, but it's fast enough usually)
+                pdf_data = create_pdf(report_content)
+                
+                d_col1, d_col2 = st.columns(2)
+                
+                with d_col1:
+                    st.download_button(
+                        label="Download MD",
+                        data=report_content,
+                        file_name=f"cipi_report_{selected_district_code}.md",
+                        mime="text/markdown",
+                        use_container_width=True
+                    )
+                
+                with d_col2:
+                    if pdf_data:
+                        st.download_button(
+                            label="Download PDF",
+                            data=pdf_data,
+                            file_name=f"cipi_report_{selected_district_code}.pdf",
+                            mime="application/pdf",
+                            use_container_width=True
+                        )
+                    else:
+                        st.warning("PDF generation failed.")
+        elif not generate_btn:
             st.info("Click 'Generate Strategic Report' to create a deep-dive analysis using AI.")
 
 
