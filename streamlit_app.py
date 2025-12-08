@@ -51,7 +51,7 @@ def check_login():
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col2:
-        st.image("assets/logo.svg", width=300)
+        st.image("assets/logo.svg", width=150)
         st.markdown("### Access Restricted")
         st.markdown("Please log in to access the District Analysis Dashboard.")
     
@@ -89,7 +89,7 @@ def check_login():
     return False
 
 def run_dashboard():
-    st.image("assets/logo.svg", width=600)
+    st.image("assets/logo.svg", width=150)
     st.title("CIPI District Strategic Analysis")
     st.markdown("Generate comprehensive strategic reports for congressional districts based on the **Civic Infrastructure Potential Index (CIPI)**.")
 
@@ -143,8 +143,14 @@ def run_dashboard():
         
         # API Key handling
         api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key and "OPENAI_API_KEY" in st.secrets:
-            api_key = st.secrets["OPENAI_API_KEY"]
+        
+        # Check Streamlit secrets (handle both root-level and nested scenarios)
+        if not api_key:
+            if "OPENAI_API_KEY" in st.secrets:
+                api_key = st.secrets["OPENAI_API_KEY"]
+            elif "passwords" in st.secrets and "OPENAI_API_KEY" in st.secrets["passwords"]:
+                # Fallback: User might have put it under [passwords] section in TOML
+                api_key = st.secrets["passwords"]["OPENAI_API_KEY"]
 
         if not api_key:
             api_key = st.text_input("OpenAI API Key", type="password", help="Enter your OpenAI API key here if not set in .env")
