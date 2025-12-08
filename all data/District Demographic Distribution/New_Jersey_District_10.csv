@@ -1,0 +1,90 @@
+Subject,Title,Value,Margin_of_Error
+Sex and Age,Total population,"800,200","(+/-14,320)"
+Sex and Age,Male,"387,765","(+/-9,261)"
+Sex and Age,Female,"412,435","(+/-8,127)"
+Sex and Age,Under 5 years,"46,635","(+/-3,255)"
+Sex and Age,5 to 9 years,"46,928","(+/-4,625)"
+Sex and Age,10 to 14 years,"51,732","(+/-5,244)"
+Sex and Age,15 to 19 years,"53,655","(+/-3,422)"
+Sex and Age,20 to 24 years,"53,059","(+/-3,612)"
+Sex and Age,25 to 34 years,"122,765","(+/-5,611)"
+Sex and Age,35 to 44 years,"108,765","(+/-4,784)"
+Sex and Age,45 to 54 years,"100,573","(+/-3,920)"
+Sex and Age,55 to 59 years,"52,171","(+/-4,564)"
+Sex and Age,60 to 64 years,"47,042","(+/-4,020)"
+Sex and Age,65 to 74 years,"68,833","(+/-3,923)"
+Sex and Age,75 to 84 years,"36,353","(+/-3,093)"
+Sex and Age,85 years and over,"11,689","(+/-2,098)"
+Sex and Age,Median age (years),37.3,(+/-0.8)
+Sex and Age,18 years and over,"621,661","(+/-11,863)"
+Sex and Age,65 years and over,"116,875","(+/-5,239)"
+Race,Total population,"800,200","(+/-14,320)"
+Race,One race,"710,546","(+/-15,865)"
+Race,White,"156,917","(+/-9,328)"
+Race,Black or African American,"379,802","(+/-11,153)"
+Race,American Indian and Alaska Native,"3,360","(+/-1,503)"
+Race,Asian,"54,272","(+/-6,012)"
+Race,Native Hawaiian and Other Pacific Islander,99,(+/-167)
+Race,Some other race,"116,096","(+/-12,319)"
+Race,Two or more races,"89,654","(+/-10,775)"
+Hispanic or Latino and Race,Total population,"800,200","(+/-14,320)"
+Hispanic or Latino and Race,Hispanic or Latino (of any race),"195,368","(+/-13,416)"
+Hispanic or Latino and Race,Mexican,"16,732","(+/-6,602)"
+Hispanic or Latino and Race,Puerto Rican,"35,798","(+/-6,472)"
+Hispanic or Latino and Race,Cuban,"6,159","(+/-2,359)"
+Hispanic or Latino and Race,Other Hispanic or Latino,"136,679","(+/-11,608)"
+Hispanic or Latino and Race,Not Hispanic or Latino,"604,832","(+/-13,851)"
+Place of Birth,Total population,"800,200","(+/-14,320)"
+Place of Birth,Native,"516,352","(+/-13,850)"
+Place of Birth,Born in United States,"489,773","(+/-13,955)"
+Place of Birth,State of residence,"354,165","(+/-13,163)"
+Place of Birth,Different state,"135,608","(+/-9,178)"
+Place of Birth,"Born in Puerto Rico, U.S. Island areas, or born abroad to American parent(s)","26,579","(+/-4,239)"
+Place of Birth,Foreign-born,"283,848","(+/-13,388)"
+Ancestry,Total population,"800,200","(+/-14,320)"
+Ancestry,American,"26,692","(+/-5,109)"
+Ancestry,Arab,"6,890","(+/-3,014)"
+Ancestry,Czech,659,(+/-678)
+Ancestry,Danish,240,(+/-233)
+Ancestry,Dutch,"1,259",(+/-748)
+Ancestry,English,"9,819","(+/-2,115)"
+Ancestry,French (except Basque),"4,524","(+/-1,923)"
+Ancestry,French Canadian,155,(+/-156)
+Ancestry,German,"17,176","(+/-2,929)"
+Ancestry,Greek,"1,299",(+/-758)
+Ancestry,Hungarian,"2,411",(+/-871)
+Ancestry,Irish,"26,618","(+/-3,094)"
+Ancestry,Italian,"33,745","(+/-4,027)"
+Ancestry,Lithuanian,505,(+/-366)
+Ancestry,Norwegian,"1,188",(+/-591)
+Ancestry,Polish,"13,107","(+/-2,097)"
+Ancestry,Portuguese,"9,587","(+/-2,927)"
+Ancestry,Russian,"5,420","(+/-1,606)"
+Ancestry,Scotch-Irish,580,(+/-301)
+Ancestry,Scottish,"1,884",(+/-809)
+Ancestry,Slovak,591,(+/-459)
+Ancestry,Subsaharan African,"61,465","(+/-8,883)"
+Ancestry,Swedish,"1,220",(+/-751)
+Ancestry,Swiss,91,(+/-105)
+Ancestry,Ukrainian,"1,414",(+/-572)
+Ancestry,Welsh,283,(+/-224)
+Ancestry,West Indian (excluding Hispanic origin groups),"71,590","(+/-13,007)"
+Veteran Status,Civilian population 18 years and over,"621,608","(+/-11,862)"
+Veteran Status,Civilian veterans,"15,962","(+/-2,045)"
+Disability Status of the Civilian Noninstitutionalized Population,Total civilian noninstitutionalized population,"790,886","(+/-14,394)"
+Disability Status of the Civilian Noninstitutionalized Population,With a disability,"92,735","(+/-6,342)"
+Disability Status of the Civilian Noninstitutionalized Population,Under 18 years,"178,466","(+/-7,989)"
+Disability Status of the Civilian Noninstitutionalized Population,With a disability,"6,467","(+/-1,614)"
+Disability Status of the Civilian Noninstitutionalized Population,18 to 64 years,"497,981","(+/-11,516)"
+Disability Status of the Civilian Noninstitutionalized Population,With a disability,"47,591","(+/-4,940)"
+Disability Status of the Civilian Noninstitutionalized Population,65 years and over,"114,439","(+/-5,243)"
+Disability Status of the Civilian Noninstitutionalized Population,With a disability,"38,677","(+/-3,463)"
+Residence 1 Year Ago,Population 1 year and over,"792,104","(+/-14,414)"
+Residence 1 Year Ago,Same house,"712,032","(+/-15,846)"
+Residence 1 Year Ago,Different house (in the U.S. or abroad),"80,072","(+/-10,762)"
+Residence 1 Year Ago,Different house in the U.S.,"70,142","(+/-9,941)"
+Residence 1 Year Ago,Same county,"42,190","(+/-7,479)"
+Residence 1 Year Ago,Different county,"27,952","(+/-6,170)"
+Residence 1 Year Ago,Same state,"12,542","(+/-2,845)"
+Residence 1 Year Ago,Different state,"15,410","(+/-5,750)"
+Residence 1 Year Ago,Abroad,"9,930","(+/-3,173)"
