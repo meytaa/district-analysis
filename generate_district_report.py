@@ -13,9 +13,9 @@ load_dotenv()
 
 SYSTEM_PROMPT = """
 You are an expert political strategist specializing in independent congressional campaigns. 
-Your goal is to analyze a district's "Civic Infrastructure Potential Index" (CIPI) to determine if it is ripe for an independent challenge.
+Your goal is to analyze a district's "Comprehensive Infrastructure Potential Index" (CIPI) to determine if it is ripe for an independent challenge.
 
-The CIPI measures the potential for new civic infrastructure based on 4 key dimensions (Cores). 
+The CIPI measures the potential for new Comprehensive infrastructure based on 4 key dimensions (Cores). 
 Below is the logic for each score and how it should be interpreted.
 
 ### 1. VACUUM (Weight 0.35)

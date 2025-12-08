@@ -1,6 +1,6 @@
 # CIPI District Analysis
 
-This project calculates the **Civic Infrastructure Potential Index (CIPI)** for US Congressional Districts. The CIPI identifies districts with high potential for new civic infrastructure based on four key dimensions: **Vacuum**, **Protest**, **Apathy**, and **Demographics**.
+This project calculates the **Comprehensive Infrastructure Potential Index (CIPI)** for US Congressional Districts. The CIPI identifies districts with high potential for new Comprehensive infrastructure based on four key dimensions: **Vacuum**, **Protest**, **Apathy**, and **Demographics**.
 
 ## Quick Start
 
