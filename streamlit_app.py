@@ -1,6 +1,9 @@
 import streamlit as st
 import pandas as pd
 import os
+import markdown
+from xhtml2pdf import pisa
+from io import BytesIO
 from dotenv import load_dotenv
 from cipi_pipeline import build_master_table, compute_scores
 from generate_district_report import get_report_content
@@ -30,6 +33,43 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+def create_pdf(markdown_content):
+    # Convert Markdown to HTML with tables extension
+    html_content = markdown.markdown(markdown_content, extensions=['tables'])
+    
+    # Add styling
+    styled_html = f"""
+    <html>
+    <head>
+        <style>
+            body {{ font-family: Helvetica, sans-serif; font-size: 12px; }}
+            h1 {{ color: #333333; }}
+            h2 {{ color: #444444; border-bottom: 1px solid #ddd; padding-bottom: 5px; }}
+            h3 {{ color: #666666; }}
+            p {{ line-height: 1.5; }}
+            
+            /* Table Styling */
+            table {{ width: 100%; border-collapse: collapse; margin: 15px 0; }}
+            th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+            th {{ background-color: #f4f4f4; color: #333; font-weight: bold; }}
+            tr:nth-child(even) {{ background-color: #fafafa; }}
+        </style>
+    </head>
+    <body>
+        {html_content}
+    </body>
+    </html>
+    """
+    
+    # Generate PDF
+    pdf_buffer = BytesIO()
+    pisa_status = pisa.CreatePDF(styled_html, dest=pdf_buffer)
+    
+    if pisa_status.err:
+        return None
+    
+    return pdf_buffer.getvalue()
 
 @st.cache_data
 def load_data():
@@ -224,12 +264,32 @@ def page_deep_dive():
                         with st.container():
                             st.markdown(report_content)
                             st.markdown("---")
-                            st.download_button(
-                                label="Download Report as Markdown",
-                                data=report_content,
-                                file_name=f"cipi_report_{selected_district_code}.md",
-                                mime="text/markdown"
-                            )
+                            
+                            # Prepare downloads
+                            pdf_data = create_pdf(report_content)
+                            
+                            d_col1, d_col2 = st.columns(2)
+                            
+                            with d_col1:
+                                st.download_button(
+                                    label="Download MD",
+                                    data=report_content,
+                                    file_name=f"cipi_report_{selected_district_code}.md",
+                                    mime="text/markdown",
+                                    use_container_width=True
+                                )
+                            
+                            with d_col2:
+                                if pdf_data:
+                                    st.download_button(
+                                        label="Download PDF",
+                                        data=pdf_data,
+                                        file_name=f"cipi_report_{selected_district_code}.pdf",
+                                        mime="application/pdf",
+                                        use_container_width=True
+                                    )
+                                else:
+                                    st.warning("PDF generation failed.")
         else:
             st.info("Click 'Generate Strategic Report' to create a deep-dive analysis using AI.")
 
