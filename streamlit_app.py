@@ -51,7 +51,7 @@ def check_login():
     col1, col2, col3 = st.columns([1, 1, 1])
     
     with col2:
-        st.image("assets/logo.svg", width=150)
+        st.image("assets/logo.svg", width=300)
         st.markdown("### Access Restricted")
         st.markdown("Please log in to access the District Analysis Dashboard.")
     
@@ -89,7 +89,7 @@ def check_login():
     return False
 
 def run_dashboard():
-    st.image("assets/logo.svg", width=150)
+    st.image("assets/logo.svg", width=300)
     st.title("CIPI District Strategic Analysis")
     st.markdown("Generate comprehensive strategic reports for congressional districts based on the **Civic Infrastructure Potential Index (CIPI)**.")
 
