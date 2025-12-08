@@ -1,6 +1,5 @@
 streamlit==1.40.0
 pandas>=2.0.0
-getattr>=0.0.1  # sometimes needed for pandas excel but usually openpyxl is enough
 openpyxl>=3.1.0 
 python-dotenv>=1.0.0
 openai>=1.0.0
