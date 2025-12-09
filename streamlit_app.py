@@ -168,7 +168,7 @@ def page_rankings():
 def page_deep_dive():
     st.image("assets/logo.svg", width=400)
     st.title("Strategic Deep Dive")
-    st.markdown("Generate comprehensive strategic reports based on the **Comprehensive Infrastructure Potential Index (CIPI)**.")
+    st.markdown("Generate comprehensive strategic reports based on the **Comprehensive Independent Potential Index (CIPI)**.")
 
     try:
         df = load_data()
