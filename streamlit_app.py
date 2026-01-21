@@ -342,8 +342,8 @@ def page_deep_dive():
                 "color": "#2ecc71"
             },
             "Demo": {
-                "scores": ["score_gen_shift", "score_new_resident", "score_diversity", "score_origin_diversity"],
-                "labels": ["Gen Shift", "New Resident", "Diversity", "Origin Div"],
+                "scores": ["score_gen_shift", "score_new_resident", "score_sogi", "score_diversity", "score_origin_diversity"],
+                "labels": ["Gen Shift", "New Resident", "SOGI (Lifestyle)", "Diversity", "Origin Div"],
                 "color": "#9b59b6"
             }
         }
@@ -417,7 +417,7 @@ def page_deep_dive():
             margin=dict(l=20, r=60, t=30, b=80),
             showlegend=False,
             yaxis=dict(range=[0, 105], title="Score"),
-            xaxis=dict(title="", tickangle=0)
+            xaxis=dict(title="", tickangle=-45)
         )
         
         st.plotly_chart(fig, use_container_width=True)
