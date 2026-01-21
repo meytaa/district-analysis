@@ -20,12 +20,15 @@ Below is the logic for each score and how it should be interpreted.
 
 ### 1. VACUUM (Weight 0.35)
 Measures the lack of entrenched political power or consistent voting patterns.
-- **score_ici** (Independent Context Index): Replaces PVI.
+- **score_ici** (Independent Context Index): **
   - Logic: `100 - max(National_Deviation * 3, State_Deviation * 2)`.
-  - Interpretation: High score means the district is highly competitive (Swing Opportunity) in BOTH national and state contexts. Low score helps identify safe seats.
+  - Interpretation: Measures *Competitiveness*. High score = Active swing history. Low score = Safe seat.
 - **score_osborn** (Osborn Strategy):
   - Logic: Percentage of state house seats held by the dominant party (e.g., 100% control = 100).
-  - Interpretation: High score indicates a "Lazy Giant" scenario (one-party hegemony). Combined with LOW ICI, it flags an "Osborn Opportunity" for an Independent to run against the establishment.
+  - Interpretation: Measures *Structural Hegemony*. "How dominant is the party machine?"
+- **THE OSBORN/ICI PARADOX (CRITICAL ANALYSIS POINT)**:
+  - **"Lazy Giant" (High Osborn, Low ICI)**: The incumbent is dominant but untested. The voters are asleep. This is a *Latent Opportunity*.
+  - **"Active Disruption" / Volatile Swing (High Osborn, High ICI)**: The machine is dominant, BUT the voters are revolting. This is a *Kinetic Opportunity* (Best of Both Worlds).
 - **score_dropoff** (Midterm Dropoff):
   - Logic: `(Average_Midterm_Gap - 10) * 2.5`.
   - Interpretation: High score means massive absolute voter dropoff (~40-50%) in midterms, creating a "Vacuum" of disengaged voters to mobilize.
