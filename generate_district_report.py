@@ -20,24 +20,24 @@ Below is the logic for each score and how it should be interpreted.
 
 ### 1. VACUUM (Weight 0.35)
 Measures the lack of entrenched political power or consistent voting patterns.
-- **score_pvi** (Partisan Voting Index): Competitiveness. 
-  - Logic: `max(0, 100 - |PVI_value| * 10)`. 
-  - Interpretation: 100 is perfectly even. 0 is a safe seat (R+10 or D+10).
-- **score_hegemony** (State Control): 
-  - Logic: 100 if one party holds >80% of state house seats, else 50.
-  - Interpretation: High score means single-party dominance in the state, suggesting a vacuum of opposition.
-- **score_dropoff** (Midterm Dropoff): 
-  - Logic: Measures the "excess gap" between presidential and midterm turnout compared to history.
-  - Interpretation: High score means voters significantly disengage during midterms, creating an opening.
-- **SwingHistory**: 
-  - Logic: Average of party flipping frequency and ticket-splitting frequency.
-  - Interpretation: High score means the district is volatile and not loyal to one party.
+- **score_ici** (Independent Context Index): Replaces PVI.
+  - Logic: `100 - max(National_Deviation * 3, State_Deviation * 2)`.
+  - Interpretation: High score means the district is highly competitive (Swing Opportunity) in BOTH national and state contexts. Low score helps identify safe seats.
+- **score_osborn** (Osborn Strategy):
+  - Logic: Percentage of state house seats held by the dominant party (e.g., 100% control = 100).
+  - Interpretation: High score indicates a "Lazy Giant" scenario (one-party hegemony). Combined with LOW ICI, it flags an "Osborn Opportunity" for an Independent to run against the establishment.
+- **score_dropoff** (Midterm Dropoff):
+  - Logic: `(Average_Midterm_Gap - 10) * 2.5`.
+  - Interpretation: High score means massive absolute voter dropoff (~40-50%) in midterms, creating a "Vacuum" of disengaged voters to mobilize.
+- **SwingHistory**:
+  - Logic: `Sum(Flips * 50, Split_Tickets * 30)`.
+  - Interpretation: High score means the district has PROVEN volatility. A score of 100 means it has flipped parties twice or flipped and split-ticketed recently.
 
 ### 2. PROTEST (Weight 0.25)
 Measures the tendency to vote against the grain or support non-establishment candidates.
-- **score_maverick** (Close Margins): 
-  - Logic: `max(0, 100 - avg_margin * 25)`.
-  - Interpretation: High score means elections are consistently close (low margins).
+- **score_maverick** (Indecision & Protest): 
+  - Logic: `(100 - avg_margin * 10) + (Minor_Party_Pct * 2)`.
+  - Interpretation: High score signals deep indecision (Close Margins) or active refusal of major parties (High Third Party vote).
 - **score_split** (Split Ticket): 
   - Logic: Percentage of recent elections where the district voted for different parties for President and House.
   - Interpretation: High score means voters are comfortable splitting their ticket.
@@ -57,8 +57,11 @@ Measures low voter engagement.
 ### 4. DEMO (Weight 0.20)
 Measures demographic characteristics correlating with political change.
 - **score_gen_shift** (Youth): 
-  - Logic: Share of population 18-54.
-  - Interpretation: High score = younger population.
+  - Logic: Share of population 18-44 (Gen Z + Millennials).
+  - Interpretation: High score = younger population ("Future Coalition").
+- **score_sogi** (SOGI - Lifestyle/Freedom):
+  - Logic: Same-Sex Couple Rate * 20. (5% Rate = 100 Score).
+  - Interpretation: High score indicates a strong "Lifestyle liberalism" or "Freedom Coalition" constituency. This is the **Dominant Demographic Factor** (High weighting).
 - **score_new_resident** (Mobility): 
   - Logic: Share of population that moved in the last year.
   - Interpretation: High score = high transient/new population.
@@ -69,76 +72,100 @@ Measures demographic characteristics correlating with political change.
   - Logic: 1 - HHI of birthplace.
   - Interpretation: High score = diverse mix of locals, transplants, and immigrants.
 
-### AGGREGATES
-- **Vacuum**, **Protest**, **Apathy**, **Demo**: Weighted averages of the above.
-- **CIPI**: Final weighted index of the four categories.
+### 5. STRATEGIC PROFILES (The "Brand")
+The district has been assigned one of the following "Strategic Profiles" based on its dominant scores. You MUST explain this profile in the report.
+- **`volatile_swing`**: High Vacuum/Protest. Structural instability.
+  - *Strategy*: Attack the "Openness" of the seat. Run on competence & change.
+- **`lazy_giant`**: High Osborn (Hegemony) + Low ICI (Competitiveness).
+  - *Strategy*: Attack the "One-Party Corruption". The incumbent is asleep despite high latent power.
+- **`sleeping_giant`**: High Apathy.
+  - *Strategy*: Mobilize the non-voters. "Your voice isn't heard."
+- **`freedom_coalition`**: High Demo (SOGI/Youth).
+  - *Strategy*: Run on "Lifestyle Freedom" and modern values. The "Future Coalition."
+- **`maverick_rebellion`**: High Protest (3rd Party/Margins).
+  - *Strategy*: "Break the Duopoly." Capitalize on deep dissatisfaction with both parties.
+- **`unawakened_future`**: High Apathy AND High Youth.
+  - *Strategy*: "Rock the Vote." A massive latent youth vote that needs activation.
+- **`cultural_wave`**: High New Residents/Diversity.
+  - *Strategy*: "Welcome Neighbors." Unite the new residents who have no loyalty to the old establishment.
+- **`balanced_general`**: No dominant core.
+  - *Strategy*: Run a broad, moderate Independent campaign.
 
 ---
 
 **YOUR TASK:**
 Analyze the provided data for the target district and provide a **Comprehensive Strategic Report**.
 
+**FORMATTING RULES (CRITICAL):**
+1.  **DATA TABLES**: Always use standard Markdown Table syntax (e.g., `| Score | Value |`). Do NOT use list format for data tables.
+2.  **ANALYSIS SECTIONS**: Use **clean vertical spacing**.
+    *   Do NOT inline analysis (e.g., `* Meaning: X * Implication: Y`).
+    *   Instead, use **Nested Lists** or **New Lines**:
+        *   **Meaning**: ...
+        *   **Implication**: ...
+3.  **SEPARATION**: Ensure there is an empty line between every major point.
+
 **STRICT OUTPUT FORMAT:**
 
-# CIPI Strategic Deep Dive: [District Code]
+# [Dynamic Professional Title]
+(Create a compelling, professional title. Example: "Target Tier 1: The Sleeping Giant Opportunity in Texas-04")
 
 ## Executive Summary
-[High-level assessment of the Independent Opportunity. Is this district a good target? Why?]
+**Strategic Profile**: [Profile Name]
+**Strategy Definition**: [Explain what this profile means and why it fits this district based on the data.]
+**Verdict**: [High-level assessment of viability.]
+**Opportunity Elaboration**: [Deep dive into the specific opportunity. Explain the "Why Now".]
 
 ---
 
 ## Phase 1: Core Analysis (The Deep Dive)
-For each Core (Vacuum, Protest, Apathy, Demo), you must provide:
-1.  **Data Table**: A Markdown table of scores and raw data.
-2.  **Sub-Score Analysis**: For EACH score in the core, you MUST provide:
-    *   **Definition**: A one-sentence explanation of what this score measures (based on the provided logic/interpretation).
-    *   **Analysis**: Explain the "Why" by citing the specific raw data values.
-    *   *Example*: 
-        *   **Score PVI (Definition)**: Measures the competitiveness of the district based on partisan voting trends.
-        *   **Analysis**: Score is 0 because the district is D+25, indicating a safe Democratic seat with no competitive vacuum.
-3.  **Core Integration**: Synthesize the scores to explain the specific opportunity on this Core. What is the narrative here?
+For each Core (Vacuum, Protest, Apathy, Demo), provide:
+1.  **Data Table**: Scores and raw data.
+2.  **Detailed Analysis**: For EVERY score, you MUST use the following nested bullet format (Do not clump text):
+    *   **[Score Name]**: [Value]
+        *   **Meaning**: [Explanation of what the score measures]
+        *   **Implication**: [What this means for the campaign strategy]
+    *(Ensure there are new lines between each score)*
+3.  **Synthesis**: How do these scores combine to create a vulnerability?
 
 ### 1. Vacuum Core
-[Table]
-[Sub-Score Analysis]
-[Core Integration & Opportunity]
+[Content]
 
 ### 2. Protest Core
-[Table]
-[Sub-Score Analysis]
-[Core Integration & Opportunity]
+[Content]
 
 ### 3. Apathy Core
-[Table]
-[Sub-Score Analysis]
-[Core Integration & Opportunity]
+[Content]
 
 ### 4. Demographic Core
-[Table]
-[Sub-Score Analysis]
-[Core Integration & Opportunity]
+[Content]
 
 ---
 
 ## Phase 2: Strategic SWOT Analysis
-Based on the data above, identify:
-*   **Strengths (Independent Assets)**: What factors favor an independent (e.g., high apathy, volatile history)?
-*   **Weaknesses (Incumbent Vulnerabilities)**: Where is the establishment weak?
-*   **Opportunities (Path to Victory)**: Specific demographics or voter blocks to target.
-*   **Threats (Systemic Barriers)**: Safe seats, straight-ticket voting, etc.
+**Deeply analyze specific data points.** Do not use generic text.
+*   **Strengths (Independent Assets)**: (e.g., "The 40% midterm dropoff gives us a massive pool of 200k voters to activate...")
+*   **Weaknesses (Incumbent Vulnerabilities)**: (e.g., "The incumbent's party has 100% control (Osborn 100) but only won by 5 points...")
+*   **Opportunities (Specific Targets)**: (e.g., "Target the High SOGI neighborhoods using a Personal Freedom alignment...")
+*   **Threats (Systemic Barriers)**: (e.g., "Low State-Level deviation suggests a rigid partisan lock...")
 
 ---
 
 ## Phase 3: Strategic Roadmap
-How should an independent candidate use these potentials at different levels?
-*   **Grassroots Level**: Who to mobilize? (e.g., "Target the 40% unregistered voters").
-*   **Messaging Level**: What is the narrative? (e.g., "Time for a change" vs "Your voice isn't heard").
-*   **Coalition Level**: Who to unite? (e.g., "Unite the youth and new residents").
+[Detailed actionable steps for Grassroots, Messaging, and Coalition building.]
 
 ---
 
 ## Phase 4: Final Recommendation & Conclusion
-[Final verdict on the viability of an independent run and the key to success.]
+[Final verdict.]
+
+---
+
+## Phase 5: Technical Methodology Appendix
+(Briefly summarize the model architecture for the reader)
+1.  **Strategic Profile Used**: Re-state the profile and its specific weights (e.g., "Sleeping Giant: Apathy 50%, Demo 25%...").
+2.  **Score Formulas**: Briefly explain the key formulas derived from the CIPI Technical Architecture (e.g., "ICI = 100 - Deviations", "SOGI = Rate * 20").
+3.  **Why This Matters**: Explain that these scores are weighted to identify *systemic* vulnerability, not just partisan lean.
 
 ---
 
@@ -160,10 +187,17 @@ def get_district_data(district_code):
     
     # Convert to dictionary and drop NaNs for cleaner JSON
     data = district_row.iloc[0].to_dict()
-    clean_data = {k: v for k, v in data.items() if pd.notna(v)}
+    
+    # Exclude legacy columns to prevent confusion
+    legacy_cols = ["score_pvi", "score_hegemony", "score_incumbent", "majority_pct", "excess_gap"]
+    
+    clean_data = {
+        k: v for k, v in data.items() 
+        if pd.notna(v) and k not in legacy_cols
+    }
     return clean_data
 
-def get_report_content(district_code, api_key=None, dry_run=False):
+def get_report_content(district_code, api_key=None, dry_run=False, chart_image_path=None):
     data = get_district_data(district_code)
     if not data:
         return None, f"Error: District {district_code} not found."
@@ -198,6 +232,21 @@ def get_report_content(district_code, api_key=None, dry_run=False):
             temperature=0.7,
         )
         report = response.choices[0].message.content
+        
+        # Inject chart if provided
+        if chart_image_path:
+            # We insert it after the title (Line 1 usually) or just prepend
+            # Assuming report starts with "# CIPI Strategic Deep Dive: ..."
+            # We'll place it after the header or in Executive Summary?
+            # Safest is to append to the end of the Executive Summary or just prepend.
+            # User wants it in PDF.
+            # Let's insert it right after the main H1 title.
+            lines = report.split('\n', 1)
+            if len(lines) > 0 and lines[0].startswith('# '):
+                report = f"{lines[0]}\n\n![Score Breakdown]({chart_image_path})\n\n{lines[1]}"
+            else:
+                report = f"![Score Breakdown]({chart_image_path})\n\n{report}"
+                
         return report, None
         
     except Exception as e:

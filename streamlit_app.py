@@ -5,7 +5,8 @@ import markdown
 from xhtml2pdf import pisa
 from io import BytesIO
 from dotenv import load_dotenv
-from cipi_pipeline import build_master_table, compute_scores
+from cipi_pipeline import build_master_table, compute_scores, PROFILES, PROFILE_THRESHOLDS
+import plotly.graph_objects as go
 from generate_district_report import get_report_content
 
 # Load environment variables
@@ -73,7 +74,7 @@ def create_pdf(markdown_content):
 
 @st.cache_data
 def load_data():
-    """Builds master table and computes scores, cached for performance."""
+    """Builds master table and computes scores. Cache invalidated for Osborn Strategy."""
     with st.spinner("Loading and processing data..."):
         master = build_master_table()
         scored = compute_scores(master)
@@ -176,27 +177,33 @@ def page_deep_dive():
         st.error(f"Error loading data: {e}")
         return
 
-    # Determine defaults
-    default_state_ix = 0
-    default_dist_ix = 0
-    
-    # Logic to pre-fill if coming from explorer
-    if "target_district" in st.session_state and st.session_state.target_district:
-        target = st.session_state.target_district
-        row = df[df["district_code"] == target]
-        if not row.empty:
-            target_state = row.iloc[0]["State"]
-            states_list = sorted(df['State'].unique().tolist())
-            if target_state in states_list:
-                default_state_ix = states_list.index(target_state)
-    
     # Sidebar controls
     with st.sidebar:
         st.header("Selection")
         
+        # Consoliated Target Logic
+        if "target_district" in st.session_state and st.session_state.target_district:
+            target = st.session_state.target_district
+            row = df[df["district_code"] == target]
+            if not row.empty:
+                # Set State
+                target_state = row.iloc[0]["State"]
+                st.session_state["deep_dive_state_selector"] = target_state
+                
+                # Set District Label
+                # We need to reconstruct the label: "District X (CODE)"
+                # But creating the exact label requires the districts_map logic.
+                # So we defer district setting slightly? 
+                # No, we can pre-calculate or just let the map logic below handle it?
+                # Actually, simpler: Set State here. Let the map build. Then set District Key.
+                # But we act *before* the widgets are rendered.
+                
+                # Check persistence of state first.
+                pass
+
         # 1. Select State
         states = sorted(df['State'].unique().tolist())
-        selected_state = st.selectbox("Select State", states, index=default_state_ix)
+        selected_state = st.selectbox("Select State", states, key="deep_dive_state_selector")
         
         # 2. Select District
         state_data = df[df['State'] == selected_state]
@@ -209,16 +216,23 @@ def page_deep_dive():
         
         # Calculate District Index if target needs to be set
         dist_keys = list(districts_map.keys())
+        
+        # Initialize selector state if target provided
         if "target_district" in st.session_state and st.session_state.target_district:
-                target = st.session_state.target_district
-                for i, key in enumerate(dist_keys):
-                    if districts_map[key] == target:
-                        default_dist_ix = i
-                        break
-                # Clear target
-                del st.session_state.target_district
+            target = st.session_state.target_district
+            # Find the label that maps to this code
+            for key, val in districts_map.items():
+                if val == target:
+                    st.session_state["deep_dive_district_selector"] = key
+                    break
+            # Clear target after consuming
+            del st.session_state.target_district
 
-        selected_district_label = st.selectbox("Select District", options=dist_keys, index=default_dist_ix)
+        selected_district_label = st.selectbox(
+            "Select District", 
+            options=dist_keys, 
+            key="deep_dive_district_selector"
+        )
         selected_district_code = districts_map[selected_district_label] if selected_district_label else None
         
         st.divider()
@@ -248,6 +262,178 @@ def page_deep_dive():
         cols[3].metric("Apathy", f"{district_row.get('Apathy', 0):.1f}")
         cols[4].metric("Demo", f"{district_row.get('Demo', 0):.1f}")
         
+        # Calculate Tier
+        cipi_score = district_row.get('CIPI', 0) or 0
+        if cipi_score >= 55:
+            tier = 1
+            tier_color = "#FFD700"  # Gold
+            tier_desc = "Top Target"
+        elif cipi_score >= 45:
+            tier = 2
+            tier_color = "#C0C0C0"  # Silver
+            tier_desc = "Strong Potential"
+        elif cipi_score >= 35:
+            tier = 3
+            tier_color = "#CD7F32"  # Bronze
+            tier_desc = "Watch List"
+        else:
+            tier = 4
+            tier_color = "#95A5A6"  # Gray
+            tier_desc = "Lower Priority"
+        
+        # Display Profile and Weights
+        profile_name = district_row.get('Profile', 'balanced_general')
+        profile_display = profile_name.replace('_', ' ').title()
+        weights = PROFILES.get(profile_name, PROFILES['balanced_general'])
+        
+        # Profile badge with weights
+        profile_colors = {
+            'volatile_swing': '#FF6B6B',
+            'lazy_giant': '#9B59B6', # Purple
+            'sleeping_giant': '#4ECDC4', 
+            'freedom_coalition': '#45B7D1',
+            'maverick_rebellion': '#C0392B', # Dark Red
+            'unawakened_future': '#16A085',  # Teal/Green
+            'cultural_wave': '#E67E22',      # Orange
+            'balanced_general': '#95A5A6'
+        }
+        badge_color = profile_colors.get(profile_name, '#95A5A6')
+        
+        # Two-column layout for Tier and Profile
+        tier_col, profile_col = st.columns(2)
+        
+        with tier_col:
+            st.markdown(f"""
+            <div style="margin-top: 10px; padding: 10px; background-color: {tier_color}20; border-left: 4px solid {tier_color}; border-radius: 4px;">
+                <span style="font-weight: bold; font-size: 1.2em; color: {tier_color};">Tier {tier}</span>
+                <span style="font-size: 0.9em; color: #666; margin-left: 10px;">{tier_desc}</span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        with profile_col:
+            st.markdown(f"""
+            <div style="margin-top: 10px; padding: 10px; background-color: {badge_color}20; border-left: 4px solid {badge_color}; border-radius: 4px;">
+                <span style="font-weight: bold; color: {badge_color};">Profile: {profile_display}</span>
+                <br>
+                <span style="font-size: 0.8em; color: #666;">
+                    V:{int(weights['Vacuum']*100)}% · P:{int(weights['Protest']*100)}% · A:{int(weights['Apathy']*100)}% · D:{int(weights['Demo']*100)}%
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Score Visualization
+        st.markdown("##### Score Breakdown")
+        
+        # Define sub-scores for each core group
+        score_groups = {
+            "Vacuum": {
+                "scores": ["score_ici", "score_osborn", "score_dropoff", "SwingHistory"],
+                "labels": ["ICI", "Osborn", "Dropoff", "Swing History"],
+                "color": "#3498db"
+            },
+            "Protest": {
+                "scores": ["score_maverick", "score_split"],
+                "labels": ["Maverick", "Split Ticket"],
+                "color": "#e74c3c"
+            },
+            "Apathy": {
+                "scores": ["score_midterm_apathy", "score_pres_apathy", "score_registration"],
+                "labels": ["Midterm", "Presidential", "Registration"],
+                "color": "#2ecc71"
+            },
+            "Demo": {
+                "scores": ["score_gen_shift", "score_new_resident", "score_diversity", "score_origin_diversity"],
+                "labels": ["Gen Shift", "New Resident", "Diversity", "Origin Div"],
+                "color": "#9b59b6"
+            }
+        }
+        
+        cipi_score = district_row.get('CIPI', 0) or 0
+        
+        # Build x-axis labels and values for grouped bar chart
+        x_labels = []
+        y_values = []
+        colors = []
+        
+        for core, config in score_groups.items():
+            for score_col, label in zip(config["scores"], config["labels"]):
+                x_labels.append(f"{core}<br><sub>{label}</sub>")
+                y_values.append(district_row.get(score_col, 0) or 0)
+                colors.append(config["color"])
+        
+        # Create figure
+        fig = go.Figure()
+        
+        # Sub-score bars
+        fig.add_trace(go.Bar(
+            x=x_labels,
+            y=y_values,
+            marker_color=colors,
+            text=[f'{v:.0f}' for v in y_values],
+            textposition='outside',
+            name='Sub-scores'
+        ))
+        
+        # Calculate center position for each group to place line chart points
+        group_centers = []
+        group_scores = []
+        group_colors = []
+        bar_idx = 0
+        for core, config in score_groups.items():
+            num_bars = len(config["scores"])
+            center_idx = bar_idx + (num_bars - 1) / 2  # Center of the group
+            group_centers.append(x_labels[bar_idx + num_bars // 2])  # Use middle bar's label
+            group_scores.append(district_row.get(core, 0) or 0)
+            group_colors.append(config["color"])
+            bar_idx += num_bars
+        
+        # Add line chart connecting the 4 group scores
+        fig.add_trace(go.Scatter(
+            x=group_centers,
+            y=group_scores,
+            mode='lines+markers+text',
+            line=dict(color='#333333', width=3),
+            marker=dict(size=12, color=group_colors, line=dict(width=2, color='white')),
+            text=[f'{s:.1f}' for s in group_scores],
+            textposition='top center',
+            textfont=dict(size=12, color='#333333'),
+            showlegend=False,
+            name='Group Scores'
+        ))
+        
+        # CIPI horizontal line (prominent)
+        fig.add_hline(
+            y=cipi_score, 
+            line_dash="dash", 
+            line_color="#f39c12",
+            line_width=3,
+            annotation_text=f"CIPI: {cipi_score:.1f}",
+            annotation_position="right",
+            annotation_font=dict(size=14, color="#f39c12")
+        )
+        
+        fig.update_layout(
+            height=400,
+            margin=dict(l=20, r=60, t=30, b=80),
+            showlegend=False,
+            yaxis=dict(range=[0, 105], title="Score"),
+            xaxis=dict(title="", tickangle=0)
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+        
+        # Add legend for core colors
+        legend_html = """
+        <div style="display: flex; justify-content: center; gap: 20px; font-size: 0.85em; margin-top: -10px;">
+            <span><span style="color: #3498db;">●</span> Vacuum</span>
+            <span><span style="color: #e74c3c;">●</span> Protest</span>
+            <span><span style="color: #2ecc71;">●</span> Apathy</span>
+            <span><span style="color: #9b59b6;">●</span> Demo</span>
+            <span><span style="color: #f39c12;">- -</span> CIPI</span>
+        </div>
+        """
+        st.markdown(legend_html, unsafe_allow_html=True)
+        
         st.divider()
 
         # Report Generation Logic
@@ -256,7 +442,17 @@ def page_deep_dive():
                 st.error("Please provide an OpenAI API Key.")
             else:
                 with st.spinner(f"Analyzing {selected_district_code}... This may take a minute."):
-                    report_content, error = get_report_content(selected_district_code, api_key=api_key)
+                    # Save chart image for PDF inclusion
+                    os.makedirs("reports", exist_ok=True)
+                    chart_path = os.path.abspath(f"reports/scores_{selected_district_code}.png")
+                    try:
+                        # Use scale=2 for better quality
+                        fig.write_image(chart_path, scale=2)
+                    except Exception as e:
+                        st.warning(f"Could not save chart image for PDF: {e}")
+                        chart_path = None
+                        
+                    report_content, error = get_report_content(selected_district_code, api_key=api_key, chart_image_path=chart_path)
                     if error:
                         st.error(error)
                     else:

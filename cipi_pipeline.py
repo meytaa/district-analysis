@@ -11,22 +11,90 @@ PROTEST_WEIGHT = 0.25
 APATHY_WEIGHT = 0.20
 DEMO_WEIGHT = 0.20
 
-VACUUM_PVI_WEIGHT = 1.0
-VACUUM_HEGEMONY_WEIGHT = 0.5
+VACUUM_ICI_WEIGHT = 1.0  # Replaces Cook PVI with our Independent Context Index
+VACUUM_OSBORN_WEIGHT = 0.5  # Replaces Hegemony - measures separate "Osborn" strategy path
 VACUUM_DROPOFF_WEIGHT = 1.0
 VACUUM_SWING_HISTORY_WEIGHT = 1.0
 
 PROTEST_MAVERICK_WEIGHT = 1.0
 PROTEST_SPLIT_WEIGHT = 1.0
 
-APATHY_MIDTERM_WEIGHT = 1.0
-APATHY_PRES_WEIGHT = 0.6
+APATHY_MIDTERM_WEIGHT = 1.5
+APATHY_PRES_WEIGHT = 0.5
 APATHY_REGISTRATION_WEIGHT = 0.5
 
-DEMO_GEN_SHIFT_WEIGHT = 1.0
-DEMO_NEW_RESIDENT_WEIGHT = 1.0
-DEMO_DIVERSITY_WEIGHT = 1.0
-DEMO_ORIGIN_DIVERSITY_WEIGHT = 1.0
+DEMO_GEN_SHIFT_WEIGHT = 1.4
+DEMO_NEW_RESIDENT_WEIGHT = 1.2
+DEMO_SOGI_WEIGHT = 2.0           # SOGI - Dominant factor (Boosted request)
+DEMO_DIVERSITY_WEIGHT = 0.8
+DEMO_ORIGIN_DIVERSITY_WEIGHT = 0.6
+
+# Dynamic Weighting Profiles
+PROFILES = {
+    "volatile_swing": {
+        "Vacuum": 0.50, "Protest": 0.30, "Apathy": 0.10, "Demo": 0.10
+    },
+    "lazy_giant": {
+        "Vacuum": 0.45, "Protest": 0.25, "Apathy": 0.20, "Demo": 0.10
+    },
+    "sleeping_giant": {
+        "Vacuum": 0.15, "Protest": 0.10, "Apathy": 0.50, "Demo": 0.25
+    },
+    "freedom_coalition": {
+        "Vacuum": 0.10, "Protest": 0.20, "Apathy": 0.20, "Demo": 0.50
+    },
+    "maverick_rebellion": {
+        "Vacuum": 0.20, "Protest": 0.50, "Apathy": 0.15, "Demo": 0.15
+    },
+    "unawakened_future": {
+        "Vacuum": 0.10, "Protest": 0.10, "Apathy": 0.40, "Demo": 0.40
+    },
+    "cultural_wave": {
+        "Vacuum": 0.15, "Protest": 0.15, "Apathy": 0.15, "Demo": 0.55
+    },
+    "balanced_general": {
+        "Vacuum": 0.25, "Protest": 0.25, "Apathy": 0.25, "Demo": 0.25
+    }
+}
+
+# Differentiated thresholds per core (based on score distributions)
+PROFILE_THRESHOLDS = {
+    "Vacuum": 30,   # Max ~58, lower bar needed
+    "Protest": 35,  # Most districts have 0, need low bar
+    "Apathy": 55,   # Good distribution, moderate bar
+    "Demo": 55      # Good distribution, moderate bar  
+}
+
+# =============================================================================
+# INDEPENDENT CONTEXT INDEX (ICI)
+# =============================================================================
+# ICI replaces Cook PVI with our own calculation using presidential vote data.
+#
+# NEW FORMULA (Universal Competitiveness):
+#   We want districts that are competitive in BOTH contexts (Universal).
+#   We penalize deviation from National trends more heavily than State deviation.
+#
+#   penalty_national = |nat_dev| * ICI_NATIONAL_FACTOR (3)
+#   penalty_state = |state_dev| * ICI_STATE_FACTOR (2)
+#   ici_penalty = max(penalty_national, penalty_state)
+#   score_ici = max(0, 100 - ici_penalty)
+#
+# INTERPRETATION:
+#   - To score high, a district MUST be moderate vs Nation AND State.
+#   - Being an outlier in just one is not enough; you must be generally competitive.
+#   - State deviation is forgiven slightly more (factor 2) than national (factor 3).
+# =============================================================================
+
+# National presidential margins (D - R, positive = Democratic lean)
+NATIONAL_MARGINS = {
+    2016: 2.1,   # Clinton 48.2% - Trump 46.1%
+    2012: 3.9,   # Obama 51.1% - Romney 47.2%
+}
+NATIONAL_AVG_MARGIN = sum(NATIONAL_MARGINS.values()) / len(NATIONAL_MARGINS)  # D+3.0
+
+# ICI Scoring Factors (Multipliers for deviation)
+ICI_STATE_FACTOR = 2      # Lower penalty for state deviation
+ICI_NATIONAL_FACTOR = 3   # Higher penalty for national deviation
 
 
 def to_float(s):
@@ -65,6 +133,82 @@ def load_cvap(state_abbr):
         "district_code", "Citizen_Voting_Age_Population", "Median_Age", "Median_Home_Value",
         "Median_Household_Income", "Total_Population", "White_Alone", 
         "Black_or_African_American_Alone", "Hispanic_or_Latino"
+    ]]
+
+
+def load_ici_data():
+    """
+    Load presidential voting data and calculate Independent Context Index (ICI).
+    
+    ICI measures partisan opportunity by finding the minimum deviation from 
+    either national or state baseline, with context-adjusted scoring factors.
+    
+    Returns DataFrame with columns:
+        - district_code: District identifier (e.g., "CA-21")
+        - district_margin: Avg presidential margin (D-R), positive = Democratic
+        - state_margin: State's average presidential margin
+        - national_deviation: |district_margin - national_margin|
+        - state_deviation: |district_margin - state_margin|
+        - ici_value: min(national_deviation, state_deviation)
+        - ici_context: "state" or "national" - which provides the minimum
+    """
+    # Load presidential data
+    pres = pd.read_csv(DATA_DIR / "District presidential 2012-2016.csv")
+    
+    # Calculate district margins (D - R, positive = Democratic lean)
+    pres["margin_2016"] = pres["Clinton %"] - pres["Trump %"]
+    pres["margin_2012"] = pres["Obama %"] - pres["Romney %"]
+    pres["district_margin"] = (pres["margin_2016"] + pres["margin_2012"]) / 2
+    
+    # Extract state from district code
+    pres["state_po"] = pres["Dist"].str[:2]
+    
+    # Calculate state margins (aggregate from districts)
+    state_margins = pres.groupby("state_po")["district_margin"].mean()
+    pres["state_margin"] = pres["state_po"].map(state_margins)
+    
+    # Calculate deviations
+    pres["national_deviation"] = (pres["district_margin"] - NATIONAL_AVG_MARGIN).abs()
+    pres["state_deviation"] = (pres["district_margin"] - pres["state_margin"]).abs()
+    
+    # Identify at-large states (only 1 district in state)
+    # For these, state_deviation is meaningless (district = state)
+    state_district_counts = pres.groupby("state_po")["Dist"].count()
+    at_large_states = state_district_counts[state_district_counts == 1].index
+    pres["is_at_large"] = pres["state_po"].isin(at_large_states)
+    
+    # ICI = Maximum Weighted Deviation model
+    # We penalize national deviation more (factor 3) than state deviation (factor 2)
+    # The score is minimal penalty approach: 100 - max(nat_dev*3, state_dev*2)
+    pres["penalty_national"] = pres["national_deviation"] * ICI_NATIONAL_FACTOR
+    pres["penalty_state"] = np.where(
+        pres["is_at_large"],
+        0,  # At-large states have no "state deviation" penalty (or just rely on national)
+        pres["state_deviation"] * ICI_STATE_FACTOR
+    )
+    
+    # ICI Value is now the "Effective Deviation Penalty"
+    # We take the MAXIMUM penalty to ensure the district is good in BOTH contexts
+    pres["ici_penalty"] = pres[["penalty_national", "penalty_state"]].max(axis=1)
+    
+    # Track which context was the limiting factor (the one with higher penalty)
+    pres["ici_context"] = np.where(
+        pres["penalty_state"] > pres["penalty_national"], 
+        "state", 
+        "national"
+    )
+    
+    # Clean up at-large context
+    pres.loc[pres["is_at_large"], "ici_context"] = "national"
+    
+    # Standardize district code format
+    pres["district_code"] = pres["Dist"].apply(
+        lambda x: x if "-" in str(x) else np.nan
+    )
+    
+    return pres[[
+        "district_code", "district_margin", "state_margin",
+        "national_deviation", "state_deviation", "ici_penalty", "ici_context"
     ]]
 
 
@@ -110,7 +254,17 @@ def load_pvi_history_swing():
     frames = []
     for path in files:
         try:
-            seq = int(path.stem)
+            # Extract year from filename (e.g., "2022.csv" -> 2022)
+            # Some files might be named "District PVI 2022.csv", need to handle that if stem isn't just int
+            # Assuming files are just year numbers or have year at end?
+            # Let's be robust: find the year in the stem
+            import re
+            match = re.search(r'\d{4}', path.stem)
+            if not match: continue
+            seq = int(match.group(0))
+            
+            # 12-Year Rolling Cap (2014-2026)
+            if seq < 2014: continue
         except ValueError:
             continue
         df = pd.read_csv(path)
@@ -176,14 +330,16 @@ def load_party(state_abbr):
     return party
 
 
-def load_state_hegemony(state_abbr):
+def load_state_osborn(state_abbr):
     sp = pd.read_csv(DATA_DIR / "State Party 2024.csv")
     sp["state_po"] = sp["state"].str.upper().map(state_abbr)
     for c, new in [("current_democratic_house", "dem"), ("current_republican_house", "rep"), ("current_independent_house", "ind")]:
         sp[new] = pd.to_numeric(sp[c], errors="coerce") if c in sp.columns else np.nan
     sp["house_total"] = sp[["dem", "rep", "ind"]].sum(axis=1, min_count=1)
-    sp["majority_pct"] = sp[["dem", "rep", "ind"]].max(axis=1) / sp["house_total"] * 100.0
-    return sp[["state_po", "majority_pct"]]
+    # The "Osborn Score" is simply the percentage control of the dominant party (State Hegemony)
+    # Strategy: Independent runs against the "Lazy Giant" in a one-party state
+    sp["score_osborn"] = sp[["dem", "rep", "ind"]].max(axis=1) / sp["house_total"] * 100.0
+    return sp[["state_po", "score_osborn"]]
 
 
 def load_state_registration():
@@ -213,11 +369,16 @@ def generational_share(row):
     if df is None: return [np.nan, np.nan]
     
     pop18 = _get_demo_value(df, "Sex and Age", "18 years and over")
+    
+    # Updated: Define "Older" as 45+ (Gen X and Boomers). 
+    # This leaves the target group as 18-44 (Gen Z + Millennials).
     older = sum(_get_demo_value(df, "Sex and Age", t) for t in [
-        "55 to 59 years", "60 to 64 years", "65 to 74 years", "75 to 84 years", "85 years and over"
+        "45 to 54 years", "55 to 59 years", "60 to 64 years", "65 to 74 years", "75 to 84 years", "85 years and over"
     ])
     
     if not pop18 or np.isnan(pop18) or np.isnan(older): return [np.nan, np.nan]
+    
+    # Young = (18+) - (45+) = 18-44
     return [max(0.0, (pop18 - older) / pop18), max(0.0, older / pop18)]
 
 
@@ -366,6 +527,64 @@ def load_split_ticket_history(state_abbr):
     return pivot.reset_index()
 
 
+def load_sogi_data(state_abbr):
+    """
+    Load Same-Sex Couple data (ACS 2023).
+    Parses 'NAME' column to extract State Name and District Number, acts as SOGI proxy.
+    """
+    path = DATA_DIR / "District Same Sex Couples 2023.csv"
+    if not path.exists(): return pd.DataFrame(columns=["district_code", "sogi_score_raw"])
+    
+    df = pd.read_csv(path)
+    
+    rows = []
+    for _, row in df.iterrows():
+        name = row["NAME"]
+        # Format: "Congressional District 1 (118th Congress), Alabama"
+        parts = name.split(", ")
+        if len(parts) < 2: continue
+        state_name = parts[-1]
+        
+        # Get State Abbr
+        # We need a reverse map from Full Name to Abbr. 
+        # state_abbr passed in is Name -> Abbr? Let's check usage.
+        # Yes, load_ballot_and_state_map returns state_abbr dict.
+        # But wait, state_key in that dict is usually UPPERCASE.
+        state_po = state_abbr.get(state_name.upper())
+        if not state_po: continue
+        
+        dist_part = parts[0]
+        # "Congressional District 1 (118th Congress)"
+        # "Congressional District (at Large) (118th Congress)"
+        # "Resident Commissioner District (at Large)..."
+        
+        dist_num = "00" # Default for at Large
+        try:
+            # Try to grab digit. "District 1 ..."
+            # Split by space
+            p = dist_part.split(" ")
+            # p[2] should be number if "Congressional District X"
+            if p[2].isdigit():
+                dist_num = f"{int(p[2]):02d}"
+            elif "at Large" in dist_part:
+                if state_po in ["AK", "DE", "ND", "SD", "VT", "WY"]:
+                    dist_num = "00"
+                else: 
+                    # Some states map At Large to 01 (e.g. MT before split? No, MT has 2 now).
+                    # Check our ballot data convention. Usually 00 for true At Large.
+                    dist_num = "00"
+        except:
+            pass
+            
+        district_code = f"{state_po}-{dist_num}"
+        rows.append({
+            "district_code": district_code,
+            "sogi_score_raw": row["sogi_score_raw"] # This is the Rate % (0.5 to 5.0)
+        })
+        
+    return pd.DataFrame(rows)
+
+
 def build_master_table():
     turnout, state_abbr, base = load_ballot_and_state_map()
     
@@ -374,12 +593,14 @@ def build_master_table():
         load_cvap(state_abbr),
         load_party(state_abbr),
         load_pvi_and_pres(),
-        load_state_hegemony(state_abbr),
+        load_state_osborn(state_abbr),
         load_state_registration(),
         load_pvi_history_swing(),
         load_midterm_dropoff_history(),
         load_maverick_history(),
-        load_split_ticket_history(state_abbr)
+        load_split_ticket_history(state_abbr),
+        load_sogi_data(state_abbr),
+        load_ici_data(),  # Independent Context Index (replaces Cook PVI)
     ]
     
     df = base.merge(turnout, on="district_code", how="left")
@@ -412,16 +633,30 @@ def compute_scores(df):
     df = df.copy()
     
     # 1. Vacuum
-    df["score_pvi"] = np.maximum(0.0, 100.0 - df["PVI_value"].abs() * 10.0)
-    df["score_hegemony"] = np.where(df["majority_pct"] > 80.0, 100.0, 50.0)
-    df["score_dropoff"] = ((df["excess_gap"] / 20.0) * 100.0).clip(0, 100)
+    # ICI (Independent Context Index) - replaces Cook PVI
+    # Formula: score = 100 - ici_penalty  (where penalty is already weighted)
+    df["score_ici"] = np.maximum(
+        0.0, 
+        100.0 - df["ici_penalty"].fillna(50)
+    )
+    # score_osborn is already calculated in load_state_osborn (0-100 scale based on party dominance)
+    
+    # Refined Dropoff Score (Absolute Vacuum)
+    # Using Avg Gap % (Presidential vs Midterm Turnout Dropoff)
+    # Mean dropoff is ~33%. We map: 10% -> 0 score, 33% -> 55 score, 50% -> 100 score.
+    # Formula: (gap - 10) * 2.5
+    avg_gap = df["avg_gap_hist"].fillna(32.0) # Fill missing with mean
+    df["score_dropoff"] = ((avg_gap - 10.0) * 2.5).clip(0, 100)
     
     df["pvi_crossover_flag"] = np.where(
         df["pvi_party"].isin(["R", "D"]) & df["inc_party"].isin(["R", "D"]) & (df["pvi_party"] != df["inc_party"]), 1, 0
     )
-    df["score_swing_flip"] = (df["swing_flip_count"].fillna(0) * 25.0).clip(upper=100)
-    df["score_swing_crossover"] = (df["swing_crossover_count"].fillna(0) * 10.0).clip(upper=100)
-    df["SwingHistory"] = df[["score_swing_flip", "score_swing_crossover"]].mean(axis=1)
+    # Swing History Boosted: Sum instead of Mean, higher multipliers
+    # 1 Flip = 50pts. 1 Crossover = 30pts.
+    # Logic: Proven swing behavior is the strongest predictor of future swing behavior.
+    df["score_swing_flip"] = (df["swing_flip_count"].fillna(0) * 50.0).clip(upper=100)
+    df["score_swing_crossover"] = (df["swing_crossover_count"].fillna(0) * 30.0).clip(upper=100)
+    df["SwingHistory"] = (df["score_swing_flip"] + df["score_swing_crossover"]).clip(upper=100)
 
     # 2. Protest
     minor_cols = ["2024_libertarian_pct", "2024_green_pct", "2024_independent_pct"]
@@ -434,15 +669,26 @@ def compute_scores(df):
             margins.append(f"margin_{y}")
     
     df["two_party_margin_hist_avg"] = df[margins].mean(axis=1)
-    df["score_maverick"] = np.maximum(0.0, 100.0 - df["two_party_margin_hist_avg"] * 25.0)
+    
+    # Updated Maverick Score (Step 738, Refined Step 815):
+    # 1. Relaxed Margin Penalty: 25 -> 10. (Margin 0=100, Margin 10=0).
+    # 2. Added Third Party Bonus: +2 * Minor Pct (using robust minor_hist_avg).
+    base_maverick = np.maximum(0.0, 100.0 - df["two_party_margin_hist_avg"] * 10.0)
+    
+    # Use minor_hist_avg (calculated in load_maverick_history) which captures ALL non-major votes
+    bonus_maverick = (df["minor_hist_avg"].fillna(0) * 2.0)
+    
+    df["score_maverick"] = (base_maverick + bonus_maverick).clip(upper=100)
+    
     df["score_split"] = df["split_rate"] * 100.0
 
     # 3. Apathy
     df["turnout_rate_2022"] = (df["votes_2022"] / df["Citizen_Voting_Age_Population"]) * 100.0
-    df["score_midterm_apathy"] = np.minimum(100.0, np.maximum(0.0, 30.0 + (52.0 - df["turnout_rate_2022"]) * 8.0))
+    df["score_midterm_apathy"] = np.minimum(100.0, np.maximum(0.0, 30.0 + (52.0 - df["turnout_rate_2022"]) * 12.0))
     
     df["turnout_rate_2024"] = (df["votes_2024"] / df["Citizen_Voting_Age_Population"]) * 100.0
-    df["score_pres_apathy"] = np.minimum(100.0, np.maximum(0.0, 30.0 + (52.0 - df["turnout_rate_2024"]) * 8.0))
+    # Presidential turnout is higher, so we set baseline at 65% (vs 52% for Midterm)
+    df["score_pres_apathy"] = np.minimum(100.0, np.maximum(0.0, 30.0 + (65.0 - df["turnout_rate_2024"]) * 12.0))
     
     df["score_registration"] = 100.0 - df["state_registration_total"]
 
@@ -466,6 +712,13 @@ def compute_scores(df):
     df["origin_native_share"], df["origin_us_other_share"], df["origin_foreign_share"] = p_native, p_us_other, p_foreign
     df["score_origin_diversity"] = (1.0 - (p_native.pow(2) + p_us_other.pow(2) + p_foreign.pow(2))) * 100.0
 
+    # Updated Demo with SOGI (Added Jan 2026)
+    # Formula: Rate * 20.
+    # Logic: 5.0% rate (San Francisco/Seattle levels) = 100 Score.
+    #        1.0% rate (Average) = 20 Score.
+    # Removing dynamic quantile thresholding for consistency.
+    df["score_sogi"] = (df["sogi_score_raw"].fillna(0) * 20.0).clip(0, 100)
+
     # Aggregates
     def w_avg(cols, weights):
         num = sum(df[c].fillna(0) * w for c, w in zip(cols, weights))
@@ -473,8 +726,8 @@ def compute_scores(df):
         return num / den.replace(0, np.nan)
 
     df["Vacuum"] = w_avg(
-        ["score_pvi", "score_hegemony", "score_dropoff", "SwingHistory"],
-        [VACUUM_PVI_WEIGHT, VACUUM_HEGEMONY_WEIGHT, VACUUM_DROPOFF_WEIGHT, VACUUM_SWING_HISTORY_WEIGHT]
+        ["score_ici", "score_osborn", "score_dropoff", "SwingHistory"],
+        [VACUUM_ICI_WEIGHT, VACUUM_OSBORN_WEIGHT, VACUUM_DROPOFF_WEIGHT, VACUUM_SWING_HISTORY_WEIGHT]
     )
     df["Protest"] = w_avg(
         ["score_maverick", "score_split"],
@@ -485,12 +738,82 @@ def compute_scores(df):
         [APATHY_MIDTERM_WEIGHT, APATHY_PRES_WEIGHT, APATHY_REGISTRATION_WEIGHT]
     )
     df["Demo"] = w_avg(
-        ["score_gen_shift", "score_new_resident", "score_diversity", "score_origin_diversity"],
-        [DEMO_GEN_SHIFT_WEIGHT, DEMO_NEW_RESIDENT_WEIGHT, DEMO_DIVERSITY_WEIGHT, DEMO_ORIGIN_DIVERSITY_WEIGHT]
+        ["score_gen_shift", "score_new_resident", "score_sogi", "score_diversity", "score_origin_diversity"],
+        [DEMO_GEN_SHIFT_WEIGHT, DEMO_NEW_RESIDENT_WEIGHT, DEMO_SOGI_WEIGHT, DEMO_DIVERSITY_WEIGHT, DEMO_ORIGIN_DIVERSITY_WEIGHT]
     )
-    df["CIPI"] = w_avg(
-        ["Vacuum", "Protest", "Apathy", "Demo"],
-        [VACUUM_WEIGHT, PROTEST_WEIGHT, APATHY_WEIGHT, DEMO_WEIGHT]
-    )
+    # Determine strategic profile for each district
+    def determine_profile(row):
+        """Determine the strategic profile for a district based on its core scores."""
+        vacuum = row.get("Vacuum", 0) or 0
+        protest = row.get("Protest", 0) or 0
+        apathy = row.get("Apathy", 0) or 0
+        demo = row.get("Demo", 0) or 0
+        
+        # HIERARCHICAL WATERFALL LOGIC (8 Types)
+        
+        # 1. LAZY GIANT (Hegemony Check)
+        ici_score = row.get("score_ici", 0)
+        osborn_score = row.get("score_osborn", 0)
+        if osborn_score > 75 and ici_score < 40:
+            return "lazy_giant"
+
+        # 2. SLEEPING GIANT (Apathy Spike)
+        score_midterm = row.get("score_midterm_apathy", 0)
+        score_pres = row.get("score_pres_apathy", 0)
+        if score_midterm > 80 or score_pres > 80:
+            return "sleeping_giant"
+
+        # 3. FREEDOM COALITION (Lifestyle Spike)
+        score_sogi = row.get("score_sogi", 0)
+        if score_sogi > 80:
+            return "freedom_coalition"
+
+        # 4. MAVERICK REBELLION (Protest Spike)
+        score_maverick = row.get("score_maverick", 0)
+        if score_maverick > 30: # 30 is extremely high for margin/3rd party
+            return "maverick_rebellion"
+
+        # 5. CULTURAL WAVE (Migration Spike)
+        score_new = row.get("score_new_resident", 0)
+        score_origin = row.get("score_origin_diversity", 0)
+        if score_new > 70 or score_origin > 70:
+            return "cultural_wave"
+            
+        # 6. UNAWAKENED FUTURE (Apathy + Youth Combination)
+        score_gen = row.get("score_gen_shift", 0)
+        if apathy > 50 and score_gen > 60:
+            return "unawakened_future"
+
+        # 7. VOLATILE SWING (Vacuum/Protest General)
+        if ici_score > 50 or vacuum > 55 or protest > 55:
+            return "volatile_swing"
+
+        # 8. BALANCED (Fallback)
+        return "balanced_general"
     
+    df["Profile"] = df.apply(determine_profile, axis=1)
+    
+    # Compute CIPI with dynamic weights based on profile
+    def compute_dynamic_cipi(row):
+        profile = PROFILES[row["Profile"]]
+        cores = ["Vacuum", "Protest", "Apathy", "Demo"]
+        
+        # Weighted average with dynamic weights
+        num = sum((row[c] or 0) * profile[c] for c in cores)
+        den = sum((1 if pd.notna(row[c]) else 0) * profile[c] for c in cores)
+        
+        return num / den if den > 0 else np.nan
+    
+    df["CIPI"] = df.apply(compute_dynamic_cipi, axis=1)
+    
+    # Compute Tier based on CIPI
+    def determine_tier(score):
+        if pd.isna(score): return 4
+        if score >= 55: return 1
+        if score >= 45: return 2
+        if score >= 35: return 3
+        return 4
+
+    df["Tier"] = df["CIPI"].apply(determine_tier)
+
     return df

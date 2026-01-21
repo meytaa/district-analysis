@@ -12,8 +12,13 @@ def generate_comprehensive_master():
     id_cols = ["district_code", "State", "District", "state_po", "state_key"]
     
     vacuum_cols = [
-        "PVI_value", "pvi_party", "inc_party", "score_pvi", "pvi_crossover_flag",
-        "majority_pct", "score_hegemony",
+        # ICI (Independent Context Index) - replaces Cook PVI
+        "ici_penalty", "ici_context", "district_margin", "state_margin",
+        "national_deviation", "state_deviation", "score_ici",
+        # Legacy PVI (still loaded for historical swing analysis)
+        "PVI_value", "pvi_party", "inc_party", "pvi_crossover_flag",
+        # Other Vacuum sub-scores
+        "score_osborn",
         "votes_2024", "votes_2022", "gap_2024", "avg_gap_hist", "excess_gap", "score_dropoff",
         "swing_flip_count", "score_swing_flip", "swing_crossover_count", "score_swing_crossover", "SwingHistory"
     ]
@@ -40,7 +45,7 @@ def generate_comprehensive_master():
         "origin_native_share", "origin_us_other_share", "origin_foreign_share", "score_origin_diversity"
     ]
     
-    agg_cols = ["Vacuum", "Protest", "Apathy", "Demo", "CIPI"]
+    agg_cols = ["Vacuum", "Protest", "Apathy", "Demo", "CIPI", "Profile"]
     
     all_cols = id_cols + vacuum_cols + protest_cols + apathy_cols + demo_cols + agg_cols
     final_cols = [c for c in all_cols if c in scored.columns]
