@@ -72,7 +72,7 @@ def create_pdf(markdown_content):
     
     return pdf_buffer.getvalue()
 
-@st.cache_data
+# @st.cache_data (Disabled to force refresh during development)
 def load_data():
     """Builds master table and computes scores. Cache invalidated for Osborn Strategy."""
     with st.spinner("Loading and processing data..."):
@@ -146,9 +146,24 @@ def page_rankings():
     ]
     valid_cols = [c for c in display_cols if c in df.columns]
     
+    # Prepare Dataframe
+    df_display = df[valid_cols].set_index("district_code").sort_values("CIPI", ascending=False)
+    
+    # Styling Function
+    def highlight_tiers(row):
+        score = row['CIPI']
+        if score >= 65: color = 'rgba(255, 215, 0, 0.15)' # Gold Tint
+        elif score >= 60: color = 'rgba(192, 192, 192, 0.15)' # Silver Tint
+        elif score >= 50: color = 'rgba(205, 127, 50, 0.15)' # Bronze Tint
+        else: return [''] * len(row)
+        return [f'background-color: {color}'] * len(row)
+
+    # Apply Style
+    styled_df = df_display.style.apply(highlight_tiers, axis=1).format("{:.1f}", subset=["CIPI", "Vacuum", "Protest", "Apathy", "Demo"])
+    
     # Display Dataframe
     event = st.dataframe(
-        df[valid_cols].set_index("district_code"),
+        styled_df,
         use_container_width=True,
         height=800,
         on_select="rerun",
@@ -264,22 +279,22 @@ def page_deep_dive():
         
         # Calculate Tier
         cipi_score = district_row.get('CIPI', 0) or 0
-        if cipi_score >= 55:
+        if cipi_score >= 65:
             tier = 1
             tier_color = "#FFD700"  # Gold
-            tier_desc = "Top Target"
-        elif cipi_score >= 45:
+            tier_desc = "Top Target (Elite)"
+        elif cipi_score >= 60:
             tier = 2
             tier_color = "#C0C0C0"  # Silver
             tier_desc = "Strong Potential"
-        elif cipi_score >= 35:
+        elif cipi_score >= 50:
             tier = 3
             tier_color = "#CD7F32"  # Bronze
             tier_desc = "Watch List"
         else:
             tier = 4
             tier_color = "#95A5A6"  # Gray
-            tier_desc = "Lower Priority"
+            tier_desc = "Lower Priority (Ignored)"
         
         # Display Profile and Weights
         profile_name = district_row.get('Profile', 'balanced_general')
@@ -357,8 +372,9 @@ def page_deep_dive():
         
         for core, config in score_groups.items():
             for score_col, label in zip(config["scores"], config["labels"]):
-                x_labels.append(f"{core}<br><sub>{label}</sub>")
-                y_values.append(district_row.get(score_col, 0) or 0)
+                x_labels.append(label)
+                val = district_row.get(score_col, 0)
+                y_values.append(0 if pd.isna(val) else val)
                 colors.append(config["color"])
         
         # Create figure
@@ -414,10 +430,10 @@ def page_deep_dive():
         
         fig.update_layout(
             height=400,
-            margin=dict(l=20, r=60, t=30, b=80),
+            margin=dict(l=20, r=60, t=30, b=120),
             showlegend=False,
             yaxis=dict(range=[0, 105], title="Score"),
-            xaxis=dict(title="", tickangle=-45)
+            xaxis=dict(title="", tickangle=-90)
         )
         
         st.plotly_chart(fig, use_container_width=True)
