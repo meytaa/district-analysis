@@ -173,7 +173,7 @@ def page_rankings():
     # Handle Selection
     if len(event.selection.rows) > 0:
         selected_row_index = event.selection.rows[0]
-        displayed_df = df[valid_cols].set_index("district_code")
+        displayed_df = df[valid_cols].set_index("district_code").sort_values("CIPI", ascending=False)
         target_code = displayed_df.index[selected_row_index]
         
         # Set target and redirect

@@ -110,8 +110,8 @@ Analyze the provided data for the target district and provide a **Comprehensive 
 
 **STRICT OUTPUT FORMAT:**
 
-# [Dynamic Professional Title]
-(Create a compelling, professional title. Example: "Target Tier 1: The Sleeping Giant Opportunity in Texas-04")
+#[Dynamic Intelligent Exciting Professional Title including the Tier and Strategic Profile]
+**IMPORTANT**: You MUST Use the value of `Calculated_Tier` from the data in the Title. Do not hallucinate the tier.
 
 ## Executive Summary
 **Strategic Profile**: [Profile Name]
@@ -194,9 +194,21 @@ def get_district_data(district_code):
     # Exclude legacy columns to prevent confusion
     legacy_cols = ["score_pvi", "score_hegemony", "score_incumbent", "majority_pct", "excess_gap"]
     
+    
+    # Calculate Tier (Matching Streamlit Logic)
+    cipi = data.get("CIPI", 0)
+    if cipi >= 65:
+        tier_str = "Tier 1 (Top Target - Elite)"
+    elif cipi >= 60:
+        tier_str = "Tier 2 (Strong Potential)"
+    elif cipi >= 50:
+        tier_str = "Tier 3 (Watch List)"
+    else:
+        tier_str = "Tier 4 (Low Priority)"
+        
     clean_data = {
-        k: v for k, v in data.items() 
-        if pd.notna(v) and k not in legacy_cols
+        "Calculated_Tier": tier_str,
+        **{k: v for k, v in data.items() if pd.notna(v) and k not in legacy_cols}
     }
     return clean_data
 
